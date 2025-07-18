@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Heap Visualizer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    input, select, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin-top: 20px;
+      background-color: white;
+    }
+    footer {
+      margin-top: 40px;
+      color: #555;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛠️ Interactive Heap Visualizer</h1>
+
+  <label for="heapType">Select Heap Type:</label>
+  <select id="heapType" onchange="refreshHeap()">
+    <option value="max">Max Heap</option>
+    <option value="min">Min Heap</option>
+  </select>
+
+  <p>Initial heap values (comma-separated):</p>
+  <input type="text" id="input" size="50" placeholder="30,20,15,5,10,8,16" />
+  <button onclick="initializeHeap()">Create Heap</button>
+
+  <br><br>
+
+  <input type="number" id="insertValue" placeholder="Insert value" />
+  <button onclick="insert()">Insert</button>
+
+  <button onclick="deleteRoot()">Delete Root</button>
+
+  <input type="number" id="searchValue" placeholder="Search value" />
+  <button onclick="search()">Search</button>
+
+  <canvas id="canvas" width="1000" height="600"></canvas>
+
+  <footer>
+    &copy; 2025 <strong>T JOHN PAUL</strong>. All rights reserved.
+  </footer>
+
+  <script>
+    let heap = [];
+    let searchIndex = -1;
+
+    function getHeapType() {
+      return document.getElementById("heapType").value;
+    }
+
+    function compare(a, b) {
+      return getHeapType() === "min" ? a < b : a > b;
+    }
+
+    function initializeHeap() {
+      const input = document.getElementById("input").value;
+      heap = input.split(",").map(x => parseInt(x.trim())).filter(x => !isNaN(x));
+      buildHeap(heap);
+      searchIndex = -1;
+      drawHeap(heap);
+    }
+
+    function refreshHeap() {
+      buildHeap(heap);
+      drawHeap(heap);
+    }
+
+    function insert() {
+      const val = parseInt(document.getElementById("insertValue").value);
+      if (!isNaN(val)) {
+        heap.push(val);
+        let i = heap.length - 1;
+        while (i > 0) {
+          let parent = Math.floor((i - 1) / 2);
+          if (compare(heap[parent], heap[i])) break;
+          [heap[parent], heap[i]] = [heap[i], heap[parent]];
+          i = parent;
+        }
+        searchIndex = -1;
+        drawHeap(heap);
+      }
+    }
+
+    function deleteRoot() {
+      if (heap.length === 0) return;
+      heap[0] = heap.pop();
+      heapify(heap, heap.length, 0);
+      searchIndex = -1;
+      drawHeap(heap);
+    }
+
+    function search() {
+      const val = parseInt(document.getElementById("searchValue").value);
+      searchIndex = heap.indexOf(val);
+      drawHeap(heap);
+
+      if (searchIndex === -1) {
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        ctx.beginPath();
+        ctx.arc(50, 50, 20, 0, 2 * Math.PI);
+        ctx.fillStyle = "#ff4444";
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "black";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Not Found", 50, 90);
+      }
+    }
+
+    function buildHeap(arr) {
+      for (let i = Math.floor(arr.length / 2) - 1; i >= 0; i--) {
+        heapify(arr, arr.length, i);
+      }
+    }
+
+    function heapify(arr, n, i) {
+      let best = i;
+      let l = 2 * i + 1;
+      let r = 2 * i + 2;
+
+      if (l < n && compare(arr[l], arr[best])) best = l;
+      if (r < n && compare(arr[r], arr[best])) best = r;
+
+      if (best !== i) {
+        [arr[i], arr[best]] = [arr[best], arr[i]];
+        heapify(arr, n, best);
+      }
+    }
+
+    function drawHeap(arr) {
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const levelHeight = 80;
+      const radius = 20;
+
+      function drawNode(index, x, y, dx) {
+        if (index >= arr.length) return;
+
+        const left = 2 * index + 1;
+        const right = 2 * index + 2;
+
+        if (left < arr.length) {
+          let lx = x - dx;
+          let ly = y + levelHeight;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(lx, ly);
+          ctx.stroke();
+          drawNode(left, lx, ly, dx / 2);
+        }
+
+        if (right < arr.length) {
+          let rx = x + dx;
+          let ry = y + levelHeight;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(rx, ry);
+          ctx.stroke();
+          drawNode(right, rx, ry, dx / 2);
+        }
+
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = (index === searchIndex) ? "#ffcc00" : "#66ccff";
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "black";
+        ctx.font = "bold 14px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(arr[index], x, y);
+      }
+
+      drawNode(0, canvas.width / 2, 50, 200);
+    }
+  </script>
+</body>
+</html>
+
